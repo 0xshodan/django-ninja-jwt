@@ -23,7 +23,7 @@ USER_SETTINGS = getattr(
 
 class NinjaJWTSettings(Schema):
     class Config:
-        orm_mode = True
+        from_attributes = True
         validate_assignment = True
 
     ACCESS_TOKEN_LIFETIME: timedelta = Field(timedelta(minutes=5))
@@ -90,7 +90,7 @@ class NinjaJWTSettings(Schema):
 
 
 # convert to lazy object
-api_settings = NinjaJWTSettings.from_orm(USER_SETTINGS)
+api_settings = NinjaJWTSettings(**USER_SETTINGS)
 
 
 def reload_api_settings(*args: Any, **kwargs: Any) -> None:
