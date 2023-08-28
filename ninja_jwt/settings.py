@@ -5,12 +5,7 @@ from django.conf import settings
 from django.test.signals import setting_changed
 from ninja import Schema
 from ninja_extra.lazy import LazyStrImport
-from pydantic import AnyUrl, Field, root_validator
-
-
-class NinjaJWTUserDefinedSettingsMapper:
-    def __init__(self, data: dict) -> None:
-        self.__dict__ = data
+from pydantic import AnyUrl, Field, model_validator
 
 
 NinjaJWT_SETTINGS_DEFAULTS = {
@@ -19,12 +14,10 @@ NinjaJWT_SETTINGS_DEFAULTS = {
     "TOKEN_USER_CLASS": "ninja_jwt.models.TokenUser",
 }
 
-USER_SETTINGS = NinjaJWTUserDefinedSettingsMapper(
-    getattr(
-        settings,
-        "SIMPLE_JWT",
-        getattr(settings, "NINJA_JWT", NinjaJWT_SETTINGS_DEFAULTS),
-    )
+USER_SETTINGS = getattr(
+    settings,
+    "SIMPLE_JWT",
+    getattr(settings, "NINJA_JWT", NinjaJWT_SETTINGS_DEFAULTS),
 )
 
 
@@ -83,7 +76,8 @@ class NinjaJWTSettings(Schema):
     )
     TOKEN_VERIFY_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenVerifyInputSchema")
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def validate_ninja_jwt_settings(cls, values):
         for item in NinjaJWT_SETTINGS_DEFAULTS.keys():
             if isinstance(values[item], (tuple, list)) and isinstance(
@@ -105,9 +99,7 @@ def reload_api_settings(*args: Any, **kwargs: Any) -> None:
     setting, value = kwargs["setting"], kwargs["value"]
 
     if setting in ["SIMPLE_JWT", "NINJA_JWT"]:
-        api_settings = NinjaJWTSettings.from_orm(
-            NinjaJWTUserDefinedSettingsMapper(value)
-        )
+        api_settings = NinjaJWTSettings(**value)
 
 
 setting_changed.connect(reload_api_settings)
