@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractUser, update_last_login
 from django.utils.translation import gettext_lazy as _
 from ninja import ModelSchema, Schema
-from pydantic import root_validator
+from pydantic import model_validator
 
 import ninja_jwt.exceptions as exceptions
 from ninja_jwt.utils import token_error
@@ -99,13 +99,15 @@ class TokenObtainInputSchemaBase(ModelSchema, TokenInputSchemaMixin):
         model = get_user_model()
         model_fields = ["password", user_name_field]
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def validate_inputs(cls, values: Dict) -> dict:
         return cls.validate_values(values)
 
-    @root_validator
-    def post_validate(cls, values: Dict) -> dict:
-        return cls.post_validate_schema(values)
+    @model_validator(mode="after")
+    def post_validate(self) -> dict:
+        values = vars(self)
+        return self.post_validate_schema(values)
 
     @classmethod
     def post_validate_schema(cls, values: Dict) -> dict:
@@ -173,11 +175,11 @@ class TokenObtainSlidingInputSchema(TokenObtainInputSchemaBase):
 class TokenRefreshInputSchema(Schema, InputSchemaMixin):
     refresh: str
 
-    @root_validator
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("refresh"):
+    @model_validator(mode="after")
+    def validate_schema(self) -> dict:
+        if not self.refresh:
             raise exceptions.ValidationError({"refresh": "token is required"})
-        return values
+        return self
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -188,15 +190,14 @@ class TokenRefreshOutputSchema(Schema):
     refresh: str
     access: Optional[str]
 
-    @root_validator
+    @model_validator(mode="after")
     @token_error
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("refresh"):
+    def validate_schema(self) -> "TokenRefreshOutputSchema":
+        if not self.refresh:
             raise exceptions.ValidationError({"refresh": "refresh token is required"})
 
-        refresh = RefreshToken(values["refresh"])
-
-        data = {"access": str(refresh.access_token)}
+        refresh = RefreshToken(self.refresh)
+        self.access = str(refresh.access_token)
 
         if api_settings.ROTATE_REFRESH_TOKENS:
             if api_settings.BLACKLIST_AFTER_ROTATION:
@@ -212,19 +213,18 @@ class TokenRefreshOutputSchema(Schema):
             refresh.set_exp()
             refresh.set_iat()
 
-            data["refresh"] = str(refresh)
-        values.update(data)
-        return values
+            self.refresh = str(refresh)
+        return self
 
 
 class TokenRefreshSlidingInputSchema(Schema, InputSchemaMixin):
     token: str
 
-    @root_validator
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("token"):
+    @model_validator(mode="after")
+    def validate_schema(self) -> "TokenRefreshSlidingInputSchema":
+        if not self.token:
             raise exceptions.ValidationError({"token": "token is required"})
-        return values
+        return self
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -234,13 +234,13 @@ class TokenRefreshSlidingInputSchema(Schema, InputSchemaMixin):
 class TokenRefreshSlidingOutputSchema(Schema):
     token: str
 
-    @root_validator
+    @model_validator(mode="after")
     @token_error
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("token"):
+    def validate_schema(self) -> "TokenRefreshSlidingOutputSchema":
+        if not self.token:
             raise exceptions.ValidationError({"token": "token is required"})
 
-        token = SlidingToken(values["token"])
+        token = SlidingToken(self.token)
 
         # Check that the timestamp in the "refresh_exp" claim has not
         # passed
@@ -249,19 +249,19 @@ class TokenRefreshSlidingOutputSchema(Schema):
         # Update the "exp" and "iat" claims
         token.set_exp()
         token.set_iat()
-        values.update({"token": str(token)})
-        return values
+        self.token = str(token)
+        return self
 
 
 class TokenVerifyInputSchema(Schema, InputSchemaMixin):
     token: str
 
-    @root_validator
+    @model_validator(mode="after")
     @token_error
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("token"):
+    def validate_schema(self) -> "TokenVerifyInputSchema":
+        if not self.token:
             raise exceptions.ValidationError({"token": "token is required"})
-        token = UntypedToken(values["token"])
+        token = UntypedToken(self.token)
 
         if (
             api_settings.BLACKLIST_AFTER_ROTATION
@@ -271,7 +271,7 @@ class TokenVerifyInputSchema(Schema, InputSchemaMixin):
             if BlacklistedToken.objects.filter(token__jti=jti).exists():
                 raise exceptions.ValidationError("Token is blacklisted")
 
-        return values
+        return self
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:
@@ -284,17 +284,17 @@ class TokenVerifyInputSchema(Schema, InputSchemaMixin):
 class TokenBlacklistInputSchema(Schema, InputSchemaMixin):
     refresh: str
 
-    @root_validator
+    @model_validator(mode="after")
     @token_error
-    def validate_schema(cls, values: Dict) -> dict:
-        if not values.get("refresh"):
+    def validate_schema(self) -> dict:
+        if not self.refresh:
             raise exceptions.ValidationError({"refresh": "refresh token is required"})
-        refresh = RefreshToken(values["refresh"])
+        refresh = RefreshToken(self.refresh)
         try:
             refresh.blacklist()
         except AttributeError:
             pass
-        return values
+        return self
 
     @classmethod
     def get_response_schema(cls) -> Type[Schema]:

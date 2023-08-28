@@ -77,9 +77,10 @@ class NinjaJWTSettings(Schema):
     )
     TOKEN_VERIFY_INPUT_SCHEMA: Any = Field("ninja_jwt.schema.TokenVerifyInputSchema")
 
-    @model_validator(mode="before")
+    @model_validator(mode="after")
     @classmethod
-    def validate_ninja_jwt_settings(cls, values):
+    def validate_ninja_jwt_settings(self) -> "NinjaJWTSettings":
+        values = vars(self)
         for item in NinjaJWT_SETTINGS_DEFAULTS.keys():
             if isinstance(values[item], (tuple, list)) and isinstance(
                 values[item][0], str
@@ -87,7 +88,7 @@ class NinjaJWTSettings(Schema):
                 values[item] = [LazyStrImport(str(klass)) for klass in values[item]]
             if isinstance(values[item], str):
                 values[item] = LazyStrImport(values[item])
-        return values
+        return NinjaJWTSettings(**values)
 
 
 # convert to lazy object
