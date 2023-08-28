@@ -8,9 +8,7 @@ name = "ninja_jwt"
 
 [project]
 name = "django-ninja-jwt"
-authors = [
-   {name = "Ezeudoh Tochukwu", email = "tochukwu.ezeudoh@gmail.com"},
-]
+authors = [{ name = "Ezeudoh Tochukwu", email = "tochukwu.ezeudoh@gmail.com" }]
 dynamic = ["version", "description"]
 requires-python = ">=3.6"
 readme = "README.md"
@@ -52,7 +50,7 @@ dependencies = [
     "Django >= 2.1",
     "pyjwt>=1.7.1,<3",
     "pyjwt[crypto]",
-    "django-ninja-extra >= 0.14.2",
+    "https://github.com/0xshodan/django-ninja-extra",
 ]
 
 
@@ -71,44 +69,40 @@ test = [
     "black == 23.7.0",
     "django-stubs",
     "python-jose==3.3.0",
-    "click==8.0.4"
+    "click==8.0.4",
 ]
 
-crypto = [
-    "cryptography>=3.3.1",
-]
+crypto = ["cryptography>=3.3.1"]
 
-dev = [
-    "pre-commit"
-]
+dev = ["pre-commit"]
 
 doc = [
-"mkdocs >=1.1.2,<2.0.0",
-"mkdocs-material",
-"markdown-include",
-"mdx-include >=1.4.1,<2.0.0",
-"mkdocs-markdownextradata-plugin >=0.1.7,<0.3.0",
-"mkdocstrings"
+    "mkdocs >=1.1.2,<2.0.0",
+    "mkdocs-material",
+    "markdown-include",
+    "mdx-include >=1.4.1,<2.0.0",
+    "mkdocs-markdownextradata-plugin >=0.1.7,<0.3.0",
+    "mkdocstrings",
 ]
 
 
 [tool.ruff]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "C",  # flake8-comprehensions
-    "B",  # flake8-bugbear
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "C", # flake8-comprehensions
+    "B", # flake8-bugbear
 ]
 ignore = [
-    "E501",  # line too long, handled by black
-    "B008",  # do not perform function calls in argument defaults
-    "C901",  # too complex
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
 ]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.ruff.isort]
-known-third-party = ["django-ninja-extra",]
+known-third-party = ["django-ninja-extra"]
